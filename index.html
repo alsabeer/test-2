@@ -13,96 +13,87 @@
     color: #fff;
     text-align: center;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   .hidden { display: none !important; }
 
   input, select, button {
-    margin: 8px;
-    padding: 12px;
+    margin: 5px;
+    padding: 10px;
     width: 90%;
-    max-width: 320px;
+    max-width: 300px;
     border-radius: 8px;
     border: none;
-    font-size: 16px;
+    font-size: 14px;
     outline: none;
   }
 
-  button {
-    background: #222;
-    color: #fff;
-    cursor: pointer;
-    transition: 0.3s ease;
-    font-weight: bold;
-  }
-  
-  button:hover {
-    background: #000;
-    transform: translateY(-2px);
-  }
+  button { background: #222; color: #fff; cursor: pointer; font-weight: bold; transition: 0.2s; }
+  button:hover { background: #000; transform: translateY(-1px); }
 
-  .activePeriod {
-    background: #fff !important;
-    color: #000 !important;
-  }
+  .activePeriod { background: #fff !important; color: #000 !important; }
 
+  /* Compact Grid for 2-digit display */
   .container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-    gap: 12px;
-    padding: 20px;
-    max-width: 800px;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); 
+    gap: 6px;
+    padding: 15px;
+    max-width: 95%;
     margin: 0 auto;
+    max-height: 50vh; 
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
   }
 
   .box {
     background: rgba(255, 255, 255, 0.2);
-    padding: 20px;
-    border-radius: 12px;
+    padding: 12px 0;
+    border-radius: 8px;
     cursor: pointer;
-    transition: 0.2s;
     font-weight: bold;
-    font-size: 18px;
-    user-select: none;
+    font-size: 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .present { background: #28a745 !important; color: white; border-color: #1e7e34; }
-  .absent { background: #dc3545 !important; color: white; border-color: #bd2130; }
+  .present { background: #28a745 !important; border-color: #1e7e34; }
+  .absent { background: #dc3545 !important; border-color: #bd2130; }
 
   .dashboard-card {
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
-    padding: 30px;
+    padding: 20px;
     border-radius: 20px;
     max-width: 450px;
-    margin: 20px auto;
+    margin: 10px auto;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   }
 
   .list {
     background: rgba(255, 255, 255, 0.1);
-    margin: 10px auto;
-    padding: 12px;
-    border-radius: 10px;
-    max-width: 400px;
+    margin: 5px auto;
+    padding: 8px;
+    border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    text-align: left;
+    font-size: 13px;
   }
 
-  .list input { width: 80px; margin: 0; text-align: center; }
-  hr { border: 0; border-top: 1px solid rgba(255,255,255,0.2); width: 85%; margin: 25px auto; }
+  .list input { width: 60px; padding: 5px; text-align: center; margin: 0; }
+  .del-btn { background: #ff4d4d; width: auto; padding: 5px 10px; font-size: 11px; }
+  hr { border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 15px auto; }
 </style>
 </head>
 <body>
 
-<h2>📊 Attendance System Pro</h2>
+<h2>📊 Attendance Pro</h2>
 
 <div id="loginDiv">
   <div class="dashboard-card">
-    <h3>User Login</h3>
+    <h3>Login</h3>
     <select id="role">
       <option value="student">Student</option>
       <option value="teacher">Teacher</option>
@@ -114,93 +105,85 @@
   </div>
 </div>
 
-<div id="studentDiv" class="hidden">
-  <div class="dashboard-card">
-    <h3>Student Dashboard</h3>
-    <h4 id="studentRollDisplay"></h4>
-    <h4 id="studentClassDisplay" style="color: #eee;"></h4>
-    <div id="studentPercentDisplay"></div>
-    <button onclick="logout()" style="background:#555;">Logout</button>
-  </div>
-</div>
-
 <div id="adminDiv" class="hidden">
   <div class="dashboard-card">
-    <h3>Admin Control Panel</h3>
     <button onclick="logout()">Logout</button>
     <hr>
-    <h4>1. Setup Sections</h4>
-    <input id="className" placeholder="New Section Name (e.g. CS-A)">
+    <h4>1. Manage Sections</h4>
+    <input id="className" placeholder="New Section Name">
     <button onclick="createClass()">Create Section</button>
-    
     <hr>
-    <h4>2. Manage Students</h4>
-    <select id="classSelect" onchange="showStudents(); loadAdminPercent();">
-      <option value="" disabled selected>Select a Section...</option>
+    <select id="classSelect" onchange="refreshAdminUI();">
+      <option value="" disabled selected>Select Section...</option>
     </select>
-    <div style="margin-top: 10px;">
-      <input id="rollNo" placeholder="Enter Roll No">
-      <button onclick="addStudent()">Add to Section</button>
-    </div>
-    <div id="studentList"></div>
+    <input id="rollNo" placeholder="Enter Roll No">
+    <button onclick="addStudent()">Add Student</button>
     
     <hr>
-    <h4>3. Manual Overrides</h4>
-    <div id="adminPercentList"></div>
-    <button id="savePercentBtn" onclick="savePercent()" class="hidden" style="background:#28a745;">Save Changes</button>
-    <p id="adminMsg" style="color:#afffba; font-weight:bold;"></p>
+    <h4>2. Student List & Editing</h4>
+    <div id="adminEditList"></div>
+    <button id="saveEditBtn" onclick="saveManualPercent()" class="hidden" style="background:#28a745; margin-top:10px;">Save Percentages</button>
+    
+    <hr>
+    <h4>3. Teacher Accounts</h4>
+    <input id="newTeacherUser" placeholder="Teacher Username">
+    <input id="newTeacherPass" type="password" placeholder="Teacher Password">
+    <button onclick="addTeacher()">Add Teacher</button>
   </div>
 </div>
 
 <div id="teacherDiv" class="hidden">
-  <div class="dashboard-card" style="max-width: 800px;">
-    <h3>Teacher Portal</h3>
-    <h4 id="todayDate"></h4>
-    <button onclick="logout()">Logout</button>
+  <div class="dashboard-card" style="max-width: 95%;">
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+        <h4 id="todayDate"></h4>
+        <button onclick="logout()" style="width:auto; padding:5px 10px;">Logout</button>
+    </div>
     <hr>
     <select id="teacherClassSelect" onchange="showPeriods()">
-      <option value="" disabled selected>Select Section to Mark...</option>
+      <option value="" disabled selected>Select Section...</option>
     </select>
-    <div id="teacherPlaceholder" style="margin: 20px;"></div>
-    <div id="periodButtons"></div>
+    <div id="periodButtons" style="margin: 10px 0;"></div>
     <div class="container" id="grid"></div>
-    <button id="submitBtn" onclick="submitAttendance()" class="hidden" style="background:#28a745;">Submit Attendance</button>
-    <h3 id="result"></h3>
+    <button id="submitBtn" onclick="submitAttendance()" class="hidden" style="background:#28a745; width: 80%; margin-top: 15px;">Save Attendance</button>
+    <p id="result" style="font-weight:bold;"></p>
+  </div>
+</div>
+
+<div id="studentDiv" class="hidden">
+  <div class="dashboard-card">
+    <h4 id="studentRollDisplay"></h4>
+    <div id="studentPercentDisplay"></div>
+    <button onclick="logout()">Logout</button>
   </div>
 </div>
 
 <script>
-// --- CORE DATABASE ---
+// --- DATABASE ---
 let db = JSON.parse(localStorage.getItem("db")) || { classes: {}, teachers: {}, manualPercent: {} };
-let tempAttendance = {};
-let currentPeriod = null;
 
 const save = () => localStorage.setItem("db", JSON.stringify(db));
 const getDate = () => new Date().toISOString().split("T")[0];
+let tempAttendance = {};
+let currentPeriod = null;
 
-// --- LOGIN LOGIC ---
 function login() {
-  const roleVal = document.getElementById("role").value;
+  const role = document.getElementById("role").value;
   const user = document.getElementById("username").value.trim();
   const pass = document.getElementById("password").value.trim();
 
-  if (roleVal === "admin" && user === "admin" && pass === "1234") {
-    showPanel("adminDiv");
-    loadAdmin();
-  } 
-  else if (roleVal === "teacher") {
-    // Basic teacher logic - allowing "teacher" / "1234" for demo ease
-    showPanel("teacherDiv");
-    loadTeacher();
-  }
-  else if (roleVal === "student") {
+  if (role === "admin" && user === "admin" && pass === "1234") {
+    showPanel("adminDiv"); updateAllSelectors();
+  } else if (role === "teacher") {
+    if (db.teachers[user] === pass) { showPanel("teacherDiv"); loadTeacher(); }
+    else { alert("Wrong Credentials"); }
+  } else if (role === "student") {
     if (user === pass && user !== "") {
-      let found = findStudent(user);
-      if (found) {
-        showPanel("studentDiv");
-        loadStudentDashboard(user, found.className, found.index);
-      } else { alert("Roll Number not found!"); }
-    } else { alert("Student password must match Roll Number."); }
+      for (let c in db.classes) {
+        let idx = db.classes[c].students.findIndex(s => s.roll === user);
+        if (idx !== -1) { showPanel("studentDiv"); loadStudentDashboard(user, c, idx); return; }
+      }
+      alert("Roll No not found!");
+    }
   }
 }
 
@@ -209,121 +192,94 @@ function showPanel(id) {
   document.getElementById(id).classList.remove("hidden");
 }
 
-function logout() {
-  location.reload(); // Hard reset for clean state
-}
+function logout() { location.reload(); }
 
-function findStudent(roll) {
-  for (let c in db.classes) {
-    let idx = db.classes[c].students.findIndex(s => s.roll === roll);
-    if (idx !== -1) return { className: c, index: idx };
-  }
-  return null;
-}
-
-// --- STUDENT VIEW ---
-function loadStudentDashboard(roll, className, index) {
-  document.getElementById("studentRollDisplay").innerText = "👤 Roll No: " + roll;
-  document.getElementById("studentClassDisplay").innerText = "Section: " + className;
-
-  let cls = db.classes[className];
-  let total = 0, present = 0;
-
-  for (let d in cls.attendance) {
-    for (let p in cls.attendance[d]) {
-      total++;
-      if (cls.attendance[d][p][index] === "present") present++;
-    }
-  }
-
-  let calc = total ? ((present / total) * 100).toFixed(2) : 0;
-  let manual = db.manualPercent[roll];
-  let final = (manual !== undefined && manual !== "") ? manual : calc;
-
-  document.getElementById("studentPercentDisplay").innerHTML = `
-    <h1 style="font-size: 60px; margin: 10px 0;">${final}%</h1>
-    <p>Status: ${final >= 75 ? "✅ Safe" : "⚠️ Shortage"}</p>
-    <p style="font-size:14px; opacity:0.8;">Data: ${present} Attended of ${total} Lectures</p>
-  `;
-}
-
-// --- ADMIN LOGIC ---
+// --- ADMIN ---
 function createClass() {
   let name = document.getElementById("className").value.trim();
   if (name && !db.classes[name]) {
     db.classes[name] = { students: [], attendance: {} };
-    save(); loadAdmin();
+    save(); updateAllSelectors();
     document.getElementById("className").value = "";
   }
 }
 
-function loadAdmin() {
-  let sel = document.getElementById("classSelect");
-  sel.innerHTML = "<option value='' disabled selected>Select Section...</option>";
-  Object.keys(db.classes).forEach(c => sel.add(new Option(c, c)));
+function updateAllSelectors() {
+  const selectors = ["classSelect", "teacherClassSelect"];
+  selectors.forEach(id => {
+    let el = document.getElementById(id);
+    if (!el) return;
+    let currentVal = el.value;
+    el.innerHTML = "<option value='' disabled selected>Select Section...</option>";
+    Object.keys(db.classes).forEach(c => el.add(new Option(c, c)));
+    if (currentVal) el.value = currentVal;
+  });
 }
 
 function addStudent() {
   let c = document.getElementById("classSelect").value;
   let roll = document.getElementById("rollNo").value.trim();
-  if (!c || !roll) return;
-  if (!db.classes[c].students.some(s => s.roll === roll)) {
+  if (c && roll) {
     db.classes[c].students.push({ roll });
-    save(); showStudents(); loadAdminPercent();
+    save(); refreshAdminUI();
     document.getElementById("rollNo").value = "";
   }
 }
 
-function showStudents() {
-  let c = document.getElementById("classSelect").value;
-  document.getElementById("studentList").innerHTML = db.classes[c].students.map((s, i) =>
-    `<div class="list">${s.roll} <button onclick="delStud('${c}', ${i})" style="width:auto; padding:5px 10px;">Remove</button></div>`
-  ).join("");
-}
-
-function delStud(c, i) {
-  db.classes[c].students.splice(i, 1);
-  save(); showStudents(); loadAdminPercent();
-}
-
-function loadAdminPercent() {
+function refreshAdminUI() {
   let c = document.getElementById("classSelect").value;
   if (!c) return;
   let html = "";
-  db.classes[c].students.forEach(s => {
+  db.classes[c].students.forEach((s, i) => {
     let currentVal = db.manualPercent[s.roll] || "";
-    html += `<div class="list"><span>${s.roll}</span> <input id="p_${s.roll}" type="number" value="${currentVal}" placeholder="%"></div>`;
+    html += `
+      <div class="list">
+        <span>${s.roll}</span>
+        <div>
+          <input id="edit_${s.roll}" type="number" value="${currentVal}" placeholder="%">
+          <button class="del-btn" onclick="deleteStudent('${c}', ${i})">Delete</button>
+        </div>
+      </div>`;
   });
-  document.getElementById("adminPercentList").innerHTML = html;
-  document.getElementById("savePercentBtn").classList.remove("hidden");
+  document.getElementById("adminEditList").innerHTML = html;
+  document.getElementById("saveEditBtn").classList.toggle("hidden", db.classes[c].students.length === 0);
 }
 
-function savePercent() {
+function deleteStudent(className, index) {
+  if (confirm("Are you sure you want to delete this student?")) {
+    db.classes[className].students.splice(index, 1);
+    save();
+    refreshAdminUI();
+  }
+}
+
+function saveManualPercent() {
   let c = document.getElementById("classSelect").value;
   db.classes[c].students.forEach(s => {
-    db.manualPercent[s.roll] = document.getElementById("p_" + s.roll).value;
+    let val = document.getElementById("edit_" + s.roll).value;
+    db.manualPercent[s.roll] = val;
   });
   save();
-  document.getElementById("adminMsg").innerText = "Saved Successfully!";
-  setTimeout(() => document.getElementById("adminMsg").innerText = "", 2000);
+  alert("Data Saved Successfully!");
 }
 
-// --- TEACHER LOGIC ---
+function addTeacher() {
+  let u = document.getElementById("newTeacherUser").value.trim();
+  let p = document.getElementById("newTeacherPass").value.trim();
+  if (u && p) { db.teachers[u] = p; save(); alert("Teacher Added!"); }
+}
+
+// --- TEACHER ---
 function loadTeacher() {
-  document.getElementById("todayDate").innerText = new Date().toDateString();
-  let sel = document.getElementById("teacherClassSelect");
-  sel.innerHTML = "<option value='' disabled selected>Select Section...</option>";
-  Object.keys(db.classes).forEach(c => sel.add(new Option(c, c)));
+  document.getElementById("todayDate").innerText = new Date().toLocaleDateString();
+  updateAllSelectors();
 }
 
 function showPeriods() {
-  let pBtns = document.getElementById("periodButtons");
-  pBtns.innerHTML = "";
-  document.getElementById("grid").innerHTML = "";
-  for (let i = 1; i <= 6; i++) {
+  let pBtns = document.getElementById("periodButtons"); pBtns.innerHTML = "";
+  for (let i = 1; i <= 7; i++) {
     let b = document.createElement("button");
-    b.innerText = "P" + i;
-    b.style.width = "auto";
+    b.innerText = "P" + i; b.style.width = "auto";
     b.onclick = () => {
       document.querySelectorAll("#periodButtons button").forEach(x => x.classList.remove("activePeriod"));
       b.classList.add("activePeriod");
@@ -340,16 +296,23 @@ function loadGrid(p) {
   let date = getDate();
   
   if (!tempAttendance[date]) tempAttendance[date] = {};
-  if (!tempAttendance[date][p]) tempAttendance[date][p] = { ...db.classes[c].attendance[date]?.[p] } || {};
+  if (!tempAttendance[date][p]) {
+      tempAttendance[date][p] = db.classes[c].attendance[date]?.[p] ? {...db.classes[c].attendance[date][p]} : {};
+  }
 
   grid.innerHTML = "";
-  db.classes[c].students.forEach((s, i) => {
+  let sorted = [...db.classes[c].students].sort((a, b) => a.roll.localeCompare(b.roll));
+
+  sorted.forEach((s) => {
+    let originalIdx = db.classes[c].students.findIndex(st => st.roll === s.roll);
     let d = document.createElement("div");
-    d.className = "box " + (tempAttendance[date][p][i] || "");
-    d.innerText = s.roll;
+    d.className = "box " + (tempAttendance[date][p][originalIdx] || "");
+    d.innerText = s.roll.slice(-2);
     d.onclick = () => {
-      let cur = tempAttendance[date][p][i];
-      tempAttendance[date][p][i] = (cur === "present") ? "absent" : "present";
+      let cur = tempAttendance[date][p][originalIdx];
+      if (!cur) tempAttendance[date][p][originalIdx] = "present";
+      else if (cur === "present") tempAttendance[date][p][originalIdx] = "absent";
+      else delete tempAttendance[date][p][originalIdx];
       loadGrid(p);
     };
     grid.appendChild(d);
@@ -359,12 +322,27 @@ function loadGrid(p) {
 
 function submitAttendance() {
   let c = document.getElementById("teacherClassSelect").value;
-  let date = getDate();
-  if (!db.classes[c].attendance[date]) db.classes[c].attendance[date] = {};
-  db.classes[c].attendance[date][currentPeriod] = tempAttendance[date][currentPeriod];
+  let d = getDate();
+  if (!db.classes[c].attendance[d]) db.classes[c].attendance[d] = {};
+  db.classes[c].attendance[d][currentPeriod] = tempAttendance[d][currentPeriod];
   save();
-  document.getElementById("result").innerText = "Attendance Submitted!";
+  document.getElementById("result").innerText = "Saved! ✅";
   setTimeout(() => document.getElementById("result").innerText = "", 2000);
+}
+
+function loadStudentDashboard(roll, c, idx) {
+  let cls = db.classes[c], t = 0, p = 0;
+  for(let date in cls.attendance) {
+      for(let per in cls.attendance[date]) {
+          t++; if(cls.attendance[date][per][idx] === "present") p++;
+      }
+  }
+  let calc = t ? ((p/t)*100).toFixed(1) : 0;
+  let manual = db.manualPercent[roll];
+  let final = (manual !== undefined && manual !== "") ? manual : calc;
+
+  document.getElementById("studentRollDisplay").innerText = "Roll: " + roll;
+  document.getElementById("studentPercentDisplay").innerHTML = `<h1>${final}%</h1><p>${p}/${t} Lectures</p>`;
 }
 </script>
 </body>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance System Pro</title>
+
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: #fff;
+    text-align: center;
+    min-height: 100vh;
+  }
+
+  .hidden { display: none !important; }
+
+  input, select, button {
+    margin: 8px;
+    padding: 12px;
+    width: 90%;
+    max-width: 320px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    outline: none;
+  }
+
+  button {
+    background: #222;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.3s ease;
+    font-weight: bold;
+  }
+  
+  button:hover {
+    background: #000;
+    transform: translateY(-2px);
+  }
+
+  .activePeriod {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 12px;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .box {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: bold;
+    font-size: 18px;
+    user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .present { background: #28a745 !important; color: white; border-color: #1e7e34; }
+  .absent { background: #dc3545 !important; color: white; border-color: #bd2130; }
+
+  .dashboard-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 450px;
+    margin: 20px auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  .list {
+    background: rgba(255, 255, 255, 0.1);
+    margin: 10px auto;
+    padding: 12px;
+    border-radius: 10px;
+    max-width: 400px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+  }
+
+  .list input { width: 80px; margin: 0; text-align: center; }
+  hr { border: 0; border-top: 1px solid rgba(255,255,255,0.2); width: 85%; margin: 25px auto; }
+</style>
+</head>
+<body>
+
+<h2>📊 Attendance System Pro</h2>
+
+<div id="loginDiv">
+  <div class="dashboard-card">
+    <h3>User Login</h3>
+    <select id="role">
+      <option value="student">Student</option>
+      <option value="teacher">Teacher</option>
+      <option value="admin">Admin</option>
+    </select>
+    <input id="username" placeholder="Username / Roll No">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Enter Portal</button>
+  </div>
+</div>
+
+<div id="studentDiv" class="hidden">
+  <div class="dashboard-card">
+    <h3>Student Dashboard</h3>
+    <h4 id="studentRollDisplay"></h4>
+    <h4 id="studentClassDisplay" style="color: #eee;"></h4>
+    <div id="studentPercentDisplay"></div>
+    <button onclick="logout()" style="background:#555;">Logout</button>
+  </div>
+</div>
+
+<div id="adminDiv" class="hidden">
+  <div class="dashboard-card">
+    <h3>Admin Control Panel</h3>
+    <button onclick="logout()">Logout</button>
+    <hr>
+    <h4>1. Setup Sections</h4>
+    <input id="className" placeholder="New Section Name (e.g. CS-A)">
+    <button onclick="createClass()">Create Section</button>
+    
+    <hr>
+    <h4>2. Manage Students</h4>
+    <select id="classSelect" onchange="showStudents(); loadAdminPercent();">
+      <option value="" disabled selected>Select a Section...</option>
+    </select>
+    <div style="margin-top: 10px;">
+      <input id="rollNo" placeholder="Enter Roll No">
+      <button onclick="addStudent()">Add to Section</button>
+    </div>
+    <div id="studentList"></div>
+    
+    <hr>
+    <h4>3. Manual Overrides</h4>
+    <div id="adminPercentList"></div>
+    <button id="savePercentBtn" onclick="savePercent()" class="hidden" style="background:#28a745;">Save Changes</button>
+    <p id="adminMsg" style="color:#afffba; font-weight:bold;"></p>
+  </div>
+</div>
+
+<div id="teacherDiv" class="hidden">
+  <div class="dashboard-card" style="max-width: 800px;">
+    <h3>Teacher Portal</h3>
+    <h4 id="todayDate"></h4>
+    <button onclick="logout()">Logout</button>
+    <hr>
+    <select id="teacherClassSelect" onchange="showPeriods()">
+      <option value="" disabled selected>Select Section to Mark...</option>
+    </select>
+    <div id="teacherPlaceholder" style="margin: 20px;"></div>
+    <div id="periodButtons"></div>
+    <div class="container" id="grid"></div>
+    <button id="submitBtn" onclick="submitAttendance()" class="hidden" style="background:#28a745;">Submit Attendance</button>
+    <h3 id="result"></h3>
+  </div>
+</div>
+
+<script>
+// --- CORE DATABASE ---
+let db = JSON.parse(localStorage.getItem("db")) || { classes: {}, teachers: {}, manualPercent: {} };
+let tempAttendance = {};
+let currentPeriod = null;
+
+const save = () => localStorage.setItem("db", JSON.stringify(db));
+const getDate = () => new Date().toISOString().split("T")[0];
+
+// --- LOGIN LOGIC ---
+function login() {
+  const roleVal = document.getElementById("role").value;
+  const user = document.getElementById("username").value.trim();
+  const pass = document.getElementById("password").value.trim();
+
+  if (roleVal === "admin" && user === "admin" && pass === "1234") {
+    showPanel("adminDiv");
+    loadAdmin();
+  } 
+  else if (roleVal === "teacher") {
+    // Basic teacher logic - allowing "teacher" / "1234" for demo ease
+    showPanel("teacherDiv");
+    loadTeacher();
+  }
+  else if (roleVal === "student") {
+    if (user === pass && user !== "") {
+      let found = findStudent(user);
+      if (found) {
+        showPanel("studentDiv");
+        loadStudentDashboard(user, found.className, found.index);
+      } else { alert("Roll Number not found!"); }
+    } else { alert("Student password must match Roll Number."); }
+  }
+}
+
+function showPanel(id) {
+  ["loginDiv", "adminDiv", "teacherDiv", "studentDiv"].forEach(d => document.getElementById(d).classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
+
+function logout() {
+  location.reload(); // Hard reset for clean state
+}
+
+function findStudent(roll) {
+  for (let c in db.classes) {
+    let idx = db.classes[c].students.findIndex(s => s.roll === roll);
+    if (idx !== -1) return { className: c, index: idx };
+  }
+  return null;
+}
+
+// --- STUDENT VIEW ---
+function loadStudentDashboard(roll, className, index) {
+  document.getElementById("studentRollDisplay").innerText = "👤 Roll No: " + roll;
+  document.getElementById("studentClassDisplay").innerText = "Section: " + className;
+
+  let cls = db.classes[className];
+  let total = 0, present = 0;
+
+  for (let d in cls.attendance) {
+    for (let p in cls.attendance[d]) {
+      total++;
+      if (cls.attendance[d][p][index] === "present") present++;
+    }
+  }
+
+  let calc = total ? ((present / total) * 100).toFixed(2) : 0;
+  let manual = db.manualPercent[roll];
+  let final = (manual !== undefined && manual !== "") ? manual : calc;
+
+  document.getElementById("studentPercentDisplay").innerHTML = `
+    <h1 style="font-size: 60px; margin: 10px 0;">${final}%</h1>
+    <p>Status: ${final >= 75 ? "✅ Safe" : "⚠️ Shortage"}</p>
+    <p style="font-size:14px; opacity:0.8;">Data: ${present} Attended of ${total} Lectures</p>
+  `;
+}
+
+// --- ADMIN LOGIC ---
+function createClass() {
+  let name = document.getElementById("className").value.trim();
+  if (name && !db.classes[name]) {
+    db.classes[name] = { students: [], attendance: {} };
+    save(); loadAdmin();
+    document.getElementById("className").value = "";
+  }
+}
+
+function loadAdmin() {
+  let sel = document.getElementById("classSelect");
+  sel.innerHTML = "<option value='' disabled selected>Select Section...</option>";
+  Object.keys(db.classes).forEach(c => sel.add(new Option(c, c)));
+}
+
+function addStudent() {
+  let c = document.getElementById("classSelect").value;
+  let roll = document.getElementById("rollNo").value.trim();
+  if (!c || !roll) return;
+  if (!db.classes[c].students.some(s => s.roll === roll)) {
+    db.classes[c].students.push({ roll });
+    save(); showStudents(); loadAdminPercent();
+    document.getElementById("rollNo").value = "";
+  }
+}
+
+function showStudents() {
+  let c = document.getElementById("classSelect").value;
+  document.getElementById("studentList").innerHTML = db.classes[c].students.map((s, i) =>
+    `<div class="list">${s.roll} <button onclick="delStud('${c}', ${i})" style="width:auto; padding:5px 10px;">Remove</button></div>`
+  ).join("");
+}
+
+function delStud(c, i) {
+  db.classes[c].students.splice(i, 1);
+  save(); showStudents(); loadAdminPercent();
+}
+
+function loadAdminPercent() {
+  let c = document.getElementById("classSelect").value;
+  if (!c) return;
+  let html = "";
+  db.classes[c].students.forEach(s => {
+    let currentVal = db.manualPercent[s.roll] || "";
+    html += `<div class="list"><span>${s.roll}</span> <input id="p_${s.roll}" type="number" value="${currentVal}" placeholder="%"></div>`;
+  });
+  document.getElementById("adminPercentList").innerHTML = html;
+  document.getElementById("savePercentBtn").classList.remove("hidden");
+}
+
+function savePercent() {
+  let c = document.getElementById("classSelect").value;
+  db.classes[c].students.forEach(s => {
+    db.manualPercent[s.roll] = document.getElementById("p_" + s.roll).value;
+  });
+  save();
+  document.getElementById("adminMsg").innerText = "Saved Successfully!";
+  setTimeout(() => document.getElementById("adminMsg").innerText = "", 2000);
+}
+
+// --- TEACHER LOGIC ---
+function loadTeacher() {
+  document.getElementById("todayDate").innerText = new Date().toDateString();
+  let sel = document.getElementById("teacherClassSelect");
+  sel.innerHTML = "<option value='' disabled selected>Select Section...</option>";
+  Object.keys(db.classes).forEach(c => sel.add(new Option(c, c)));
+}
+
+function showPeriods() {
+  let pBtns = document.getElementById("periodButtons");
+  pBtns.innerHTML = "";
+  document.getElementById("grid").innerHTML = "";
+  for (let i = 1; i <= 6; i++) {
+    let b = document.createElement("button");
+    b.innerText = "P" + i;
+    b.style.width = "auto";
+    b.onclick = () => {
+      document.querySelectorAll("#periodButtons button").forEach(x => x.classList.remove("activePeriod"));
+      b.classList.add("activePeriod");
+      loadGrid(i);
+    };
+    pBtns.appendChild(b);
+  }
+}
+
+function loadGrid(p) {
+  currentPeriod = p;
+  let c = document.getElementById("teacherClassSelect").value;
+  let grid = document.getElementById("grid");
+  let date = getDate();
+  
+  if (!tempAttendance[date]) tempAttendance[date] = {};
+  if (!tempAttendance[date][p]) tempAttendance[date][p] = { ...db.classes[c].attendance[date]?.[p] } || {};
+
+  grid.innerHTML = "";
+  db.classes[c].students.forEach((s, i) => {
+    let d = document.createElement("div");
+    d.className = "box " + (tempAttendance[date][p][i] || "");
+    d.innerText = s.roll;
+    d.onclick = () => {
+      let cur = tempAttendance[date][p][i];
+      tempAttendance[date][p][i] = (cur === "present") ? "absent" : "present";
+      loadGrid(p);
+    };
+    grid.appendChild(d);
+  });
+  document.getElementById("submitBtn").classList.remove("hidden");
+}
+
+function submitAttendance() {
+  let c = document.getElementById("teacherClassSelect").value;
+  let date = getDate();
+  if (!db.classes[c].attendance[date]) db.classes[c].attendance[date] = {};
+  db.classes[c].attendance[date][currentPeriod] = tempAttendance[date][currentPeriod];
+  save();
+  document.getElementById("result").innerText = "Attendance Submitted!";
+  setTimeout(() => document.getElementById("result").innerText = "", 2000);
+}
+</script>
+</body>
+</html>
